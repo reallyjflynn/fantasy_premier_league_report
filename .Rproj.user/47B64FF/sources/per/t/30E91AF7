@@ -1,0 +1,24 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1532766409921.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "703716992",
+    "id" : "30E91AF7",
+    "lastKnownWriteTime" : 1532946846,
+    "last_content_update" : 1532946846551,
+    "path" : "~/Documents/Study/R/fantasy premier league/player_choice.Rmd",
+    "project_path" : "player_choice.Rmd",
+    "properties" : {
+        "chunk_output_type" : "console",
+        "cursorPosition" : "138,0",
+        "scrollLine" : "129",
+        "tempName" : "Untitled1"
+    },
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_markdown"
+}

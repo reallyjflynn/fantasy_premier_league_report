@@ -1,0 +1,29 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1532773715052.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "5D984035",
+    "lastKnownWriteTime" : 0,
+    "last_content_update" : 1532773715052,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "3C03100",
+        "caption" : "teams",
+        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=teams&cache_key=3C03100",
+        "displayedObservations" : 20,
+        "environment" : "",
+        "object" : "teams",
+        "preview" : 0,
+        "totalObservations" : 20,
+        "variables" : 23
+    },
+    "relative_order" : 2,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_dataframe"
+}

@@ -1,0 +1,23 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1537778888766.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "203850142",
+    "id" : "A1008231",
+    "lastKnownWriteTime" : 1554810267,
+    "last_content_update" : 1554810267469,
+    "path" : "~/Learning/fantasy premier league/player_choice.Rmd",
+    "project_path" : "player_choice.Rmd",
+    "properties" : {
+        "chunk_output_type" : "console",
+        "cursorPosition" : "469,34",
+        "scrollLine" : "464"
+    },
+    "relative_order" : 2,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_markdown"
+}

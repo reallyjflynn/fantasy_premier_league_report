@@ -1,0 +1,170 @@
+---
+title: "Rest of the Season"
+author: "JFlynn"
+date: "3/11/2019"
+output: html_document
+---
+
+```{r setup, include = FALSE}
+
+knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+knitr::opts_chunk$set(message = FALSE)
+
+```
+
+
+```{r, echo=FALSE, warning = FALSE, message = FALSE}
+
+# devtools::install_github('ewenme/fplr')
+
+library(tidyverse)
+library(purrr)
+library(broom)
+library(fplr)
+library(ggthemes)
+library(scales)
+library(knitr)
+library(forcats)
+library(newswhipstyle)
+library(ggrepel)
+library(modelr)
+library(regista)
+
+
+fixtures <- fpl_get_fixtures()
+
+```
+
+
+
+
+```{r, echo = FALSE, warning = FALSE, message = FALSE}
+
+fixtures_new <- fixtures %>% 
+        mutate(week = as.Date(deadline_time, format = '%Y-%m-%d'),
+               team_h = as.factor(team_h),
+               team_a = as.factor(team_a)) %>%
+        select(team_h, team_a, team_h_score, team_a_score, finished, week)
+
+played <- fixtures_new %>% 
+        filter(finished == TRUE) %>% 
+        select(-finished)
+
+unplayed <- fixtures_new %>% 
+        filter(finished == FALSE) %>% 
+        select(-finished)
+        
+model <- dixoncoles(team_h_score, team_a_score, team_h, team_a, 
+                    data = played)
+
+```
+
+
+```{r, echo = FALSE, warning = FALSE, message = FALSE}
+
+match_probabilities <- broom::augment(
+        model, unplayed, 
+        type.predict = "outcomes") %>% 
+        unnest() %>% 
+        spread(outcome, prob) %>% 
+        select(-team_h_score, -team_a_score)
+
+# match_probabilities
+
+```
+
+```{r, echo = FALSE, warning = FALSE, message = FALSE}
+
+team_parameters <- broom::tidy(model) %>% 
+        filter(parameter %in% c("off", "def")) %>% 
+        mutate(value = exp(value)) %>% 
+        spread(parameter, value)
+
+team_parameters %>% 
+        ggplot(aes(x = (-1 * def), y = off)) +  
+        geom_point(alpha = 0.5) + 
+        ggrepel::geom_text_repel(aes(label = team)) + 
+        theme_minimal() + 
+        labs(title = "Team Strength Estimates", 
+             y = "Attack", 
+             x = "Defence")
+
+
+```
+
+
+
+```{r, echo = FALSE, warning = FALSE, message = FALSE}
+
+unplayed_scorelines <- broom::augment(
+        model, unplayed, type.predict = "scorelines") %>% 
+        unnest() %>% 
+        select(-team_h_score, -team_a_score)
+
+# unplayed_scorelines
+
+
+```
+
+```{r}
+
+t <- unplayed_scorelines %>% 
+        filter(!is.na(week)) %>%
+        group_by(team_h, team_a, week) %>% 
+        filter(prob == max(prob)) %>% 
+        ungroup() %>%
+        mutate(home_points = case_when(
+                hgoal == agoal ~ 1,
+                hgoal < agoal ~ 0,
+                hgoal > agoal ~ 3)) %>%
+        mutate(away_points = case_when(
+                hgoal == agoal ~ 1,
+                hgoal < agoal ~ 3,
+                hgoal > agoal ~ 0))
+
+home_team <- t %>%
+        group_by(team_h) %>%
+        summarise(h_points = sum(home_points)) %>%
+        ungroup() %>%
+        mutate(team_h = as.character(team_h))
+        
+away_team <- t %>%
+        group_by(team_a) %>%
+        summarise(a_points = sum(away_points)) %>%
+        ungroup() %>%
+        mutate(team_a = as.character(team_a))
+
+
+
+current_standings <- tibble(
+        name = c('Man City', 'Liverpool', 'Spurs', 'Arsenal',
+                 'Man Utd', 'Chelsea', 'Wolves', 'Watford',
+                 'West Ham', 'Leicester', 'Everton', 'Bournemouth',
+                 'Newcastle', 'Crystal Palace', 'Brighton', 'Southampton',
+                 'Burnley', 'Cardiff', 'Fulham', 'Huddersfield'),
+        points = c(74, 73, 61, 60, 58, 57,44, 43, 
+                   39, 38, 37, 37, 34, 33, 33, 30, 
+                   30, 28, 17, 14)
+)
+
+
+final <- current_standings %>%
+        inner_join(home_team, by = c('name' = 'team_h')) %>%
+        inner_join(away_team, by = c('name' = 'team_a')) %>%
+        mutate(total_points = points + a_points + h_points) %>%
+        arrange(desc(total_points))
+
+
+final %>%
+        knitr::kable()
+
+
+```
+
+
+```{r}
+
+
+```
+

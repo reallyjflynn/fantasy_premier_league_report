@@ -1,0 +1,480 @@
+---
+title: "FPL R"
+author: "JFynn"
+date: "28/7/2018"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+
+
+
+```{r, echo=FALSE, warning = FALSE, message = FALSE}
+
+# devtools::install_github('ewenme/fplr')
+
+library(tidyverse)
+library(purrr)
+library(broom)
+library(fplr)
+library(ggthemes)
+library(scales)
+library(knitr)
+library(forcats)
+library(newswhipstyle)
+library(ggrepel)
+library(modelr)
+library(regista)
+
+players <- fpl_get_players()
+fixtures <- fpl_get_fixtures()
+teams <- fpl_get_teams()
+
+
+gg <- players %>% 
+        mutate(selected_by_percent = selected_by_percent / 100) %>% 
+        ggplot(aes(minutes, total_points, 
+                    size = selected_by_percent)) +
+        geom_point(alpha = .6) + 
+        theme_newswhip() +
+        theme(legend.position = 'bottom') +
+        scale_size_continuous(labels = percent) +
+        labs(title = 'Player Points Versus Game Time',
+             x = 'Minutes', y = 'Total Points')
+
+
+the_best <- players %>% 
+        top_n(10, total_points) %>%
+        select(id, web_name, total_points, minutes, 
+               selected_by_percent)
+
+gg + geom_label_repel(data = the_best, 
+                      aes(minutes, total_points,
+                          label = web_name),
+                      show.legend = FALSE)
+
+```
+
+
+### Goalkeeper
+
+```{r, echo = FALSE, warning = FALSE, message = FALSE}
+library(newswhipstyle)
+
+goal <- players %>%
+        filter(position == 'Goalkeeper') %>%
+        mutate(selected_by_percent = selected_by_percent / 100)
+
+tmp <- goal %>%
+        filter(minutes > 450) %>%
+        mutate(ppm = total_points / minutes,
+               now_cost = as.integer(now_cost))
+
+t_small <- tmp %>% 
+        top_n(n = 5, wt = ppm)
+
+gg <- ggplot(tmp, aes(ppm, now_cost, color = selected_by_percent)) +
+        geom_point(alpha = .7,
+                   size = 3) +
+        theme_newswhip() +
+        labs(title = 'Goal Keeper Value',
+             x = 'Total Points Per Minute', y = 'Cost',
+             color = 'Percent Selected') +
+        scale_y_continuous(limits = c(0, 10)) +
+        scale_color_newswhip(discrete = FALSE,
+                             palette = 'secondary') +
+        theme(legend.position = 'bottom')
+
+gg + geom_label_repel(data = t_small,
+                      aes(ppm, now_cost,
+                          label = web_name))
+
+
+```
+
+
+### Defender
+
+```{r, echo = FALSE, warning = FALSE, message = FALSE}
+
+def <- players %>%
+        filter(position == 'Defender') %>%
+        mutate(selected_by_percent = selected_by_percent / 100)
+
+tmp <- def %>%
+        filter(minutes > 450) %>%
+        mutate(ppm = total_points / minutes)
+
+t_small <- tmp %>% 
+        top_n(n = 10, wt = ppm)
+
+gg <- ggplot(tmp, aes(ppm, now_cost, color = selected_by_percent)) +
+        geom_point(alpha = .7,
+                   size = 3) +
+        theme_minimal() +
+        labs(title = 'Goal Keeper Value',
+             x = 'Total Points Per Minute', y = 'Cost',
+             color = 'Percent Selected') +
+        scale_y_continuous(limits = c(0, 10)) +
+        scale_color_newswhip(discrete = FALSE,
+                             palette = 'secondary') +
+        theme(legend.position = 'bottom') 
+
+gg + geom_label_repel(data = t_small,
+                      aes(ppm, now_cost,
+                          label = web_name))
+
+
+
+```
+
+
+### Midfielder 
+
+```{r, echo = FALSE, warning = FALSE, message = FALSE}
+
+
+mid <- players %>%
+        filter(position == 'Midfielder') %>%
+        mutate(selected_by_percent = selected_by_percent / 100)
+
+
+
+tmp <- mid %>%
+        filter(minutes > 450) %>%
+        mutate(ppm = total_points / minutes)
+
+t_small <- tmp %>%
+        top_n(n = 15, wt = ppm)
+
+gg <- ggplot(tmp, aes(ppm, now_cost)) +
+        geom_point(color = '#ff3d64', 
+                   alpha = .7,
+                   size = 3) +
+        theme_minimal() +
+        labs(title = 'Midfielder Value',
+             x = 'Total Points Per Minute', y = 'Cost') +
+        scale_y_continuous(limits = c(0, 14))
+
+gg + geom_label_repel(data = t_small,
+                      aes(ppm, now_cost,
+                          label = web_name))
+
+```
+
+
+### Forward
+
+
+```{r, echo = FALSE, warning = FALSE, message = FALSE}
+
+
+forw <- players %>%
+        filter(position == 'Forward') %>%
+        mutate(selected_by_percent = selected_by_percent / 100)
+
+
+tmp <- forw %>%
+        filter(minutes > 450) %>%
+        mutate(ppm = total_points / minutes)
+
+t_small <- tmp %>%
+        top_n(n = 10, wt = ppm)
+
+gg <- ggplot(tmp, aes(ppm, now_cost)) +
+        geom_point(color = '#ff3d64', 
+                   alpha = .7,
+                   size = 3) +
+        theme_minimal() +
+        labs(title = 'Midfielder Value',
+             x = 'Total Points Per Minute', y = 'Cost') +
+        scale_y_continuous(limits = c(0, 14))
+
+gg + geom_label_repel(data = t_small,
+                      aes(ppm, now_cost,
+                          label = web_name))
+
+```
+
+### Team Form
+
+```{r, echo = FALSE, warning = FALSE, message = FALSE}
+
+away <- teams %>% 
+        select('teamid' = id, 'opposition' = name, 
+               strength_overall_home, strength_overall_away) %>% 
+        right_join(fixtures %>% 
+                           select('gameid' = id, finished, team_h, 'team' = team_a,
+                                  kickoff_time), 
+                   by = c('opposition' = 'team_h')) %>% 
+        mutate(cat = 'away',
+               'overall_strength' = strength_overall_away)
+
+home <- teams %>% 
+        select('teamid' = id, 'opposition' = name, 
+               strength_overall_home, strength_overall_away) %>% 
+        right_join(fixtures %>% 
+                           select('gameid' = id, finished, 'team' = team_h, 
+                                  team_a, kickoff_time), 
+                   by = c('opposition' = 'team_a')) %>% 
+        mutate(cat = 'home', 
+               'overall_strength' = strength_overall_home)
+
+df <- rbind(home, away) %>% 
+        mutate(date = as.Date(kickoff_time)) %>% 
+        filter(date < Sys.Date() + 30,
+               date > Sys.Date() - 30)
+
+
+by_team <- df %>% 
+        group_by(team) %>% 
+        nest()
+
+opp_strength <- function(df) {
+        lm(overall_strength ~ date, data = df)
+}
+
+
+by_team <- by_team %>% 
+        mutate(model = map(data, opp_strength),
+               tidy = map(model, broom::tidy))
+
+
+model <- by_team %>%
+        unnest(tidy) %>% 
+        filter(term == 'date') %>% 
+        mutate(ave_difficulty = mean(estimate),
+               difficulty = estimate - ave_difficulty)
+
+
+df %>% 
+        right_join(model %>% 
+        top_n(n = -5, estimate) %>% 
+        select(team)) %>% 
+        mutate(ave_diff = mean(overall_strength),
+               difficulty = overall_strength - ave_diff) %>%
+        ggplot(aes(x = date, difficulty, 
+                   color = team)) +
+        geom_smooth(se = FALSE) + 
+        geom_vline(xintercept = Sys.Date()) +
+        facet_wrap(~team) +
+        theme_minimal() +
+        scale_y_continuous(labels = comma) +
+        scale_color_viridis_d() +
+        labs(title = 'Opposition Difficulty Predicted',
+             subtitle = 'Teams With the Best Fixtures for the rest of the season',
+             x = '', y = 'Opposition Strength',
+             color = '5 Teams Best Schedules')
+
+
+df %>% 
+        right_join(model %>% 
+        top_n(n = 5, estimate) %>% 
+        select(team)) %>% 
+        mutate(ave_diff = mean(overall_strength),
+               difficulty = overall_strength - ave_diff) %>%
+        ggplot(aes(x = date, difficulty, 
+                   color = team)) +
+        geom_smooth(se = FALSE) + 
+        geom_vline(xintercept = Sys.Date()) +
+        facet_wrap(~team) +
+        theme_minimal() +
+        scale_y_continuous(labels = comma) +
+        scale_color_viridis_d() +
+        labs(title = 'Opposition Difficulty Predicted',
+             subtitle = 'Teams With the Worst Fixtures Over the next 30 days',
+             x = '', y = 'Opposition Strength',
+             color = '5 Teams Worst Schedules')
+
+
+model %>% 
+        select(team, estimate) %>% 
+        arrange(estimate) %>% 
+        mutate(estimate = round(estimate * -1, digits = 5)) %>%
+        kable()
+               
+
+```
+
+
+
+
+### Player Form
+
+```{r, echo = FALSE, warning = FALSE, message = FALSE}
+
+
+the_best <- rbind(
+        players %>%  
+                filter(position == 'Goalkeeper') %>% 
+                top_n(5, total_points), 
+        players %>% 
+              filter(position == 'Defender') %>% 
+              top_n(25, total_points), 
+        players %>%  
+                filter(position == 'Midfielder') %>% 
+                top_n(40, total_points), 
+        players %>% 
+                filter(position == 'Forward') %>% 
+                top_n(25, total_points))
+
+df <- fpl_get_player_detailed(the_best$id[1])$history %>% 
+        select(attempted_passes, completed_passes, 
+               errors_leading_to_goal, errors_leading_to_goal_attempt, 
+               open_play_crosses, big_chances_created, 
+               clearances_blocks_interceptions, recoveries, 
+               key_passes, tackles, goals_scored, assists, 
+               clean_sheets, goals_conceded, transfers_in, 
+               transfers_out, dribbles, selected, total_points, 
+               value, kickoff_time) %>%
+        mutate(player_id = the_best$id[1])
+
+for(i in 2:nrow(the_best)) {
+        df <- rbind(df, 
+              fpl_get_player_detailed(the_best$id[i])$history %>% 
+                      select(attempted_passes, completed_passes, 
+                             errors_leading_to_goal,
+                             errors_leading_to_goal_attempt, 
+                             open_play_crosses, big_chances_created, 
+                             clearances_blocks_interceptions, recoveries, 
+                             key_passes, tackles, goals_scored, assists, 
+                             clean_sheets, goals_conceded, transfers_in, 
+                             transfers_out, dribbles, selected, total_points, 
+                             value, kickoff_time) %>%
+                      mutate(player_id = the_best$id[i]))
+}
+
+by_player <- df %>% 
+        mutate(kickoff_date = as.Date(kickoff_time, format = '%Y-%m-%d')) %>%
+        group_by(player_id) %>% 
+        nest()
+
+form <- function(df) {
+        MASS::rlm(total_points ~ kickoff_date, data = df)
+}
+
+
+player_form <- by_player %>% 
+        mutate(model = map(data, form),
+               tidy = map(model, broom::tidy))
+
+
+model <- player_form %>%
+        unnest(tidy) %>% 
+        filter(term == 'kickoff_date')
+
+
+player_form <- left_join(model, players %>% 
+                                 select(id, web_name, minutes, position), 
+                         by = c('player_id' = 'id'))
+
+
+player_form %>% 
+        filter(minutes > (8 * 90)) %>%
+        group_by(position) %>%
+        top_n(5, wt = estimate) %>% 
+        arrange(desc(estimate), .by_group = TRUE) %>%
+        ungroup() %>%
+        select(web_name, position, estimate, std.error, minutes) %>%
+        kable()
+        
+player_form %>% 
+        filter(minutes > (8 * 90)) %>%
+        group_by(position) %>%
+        top_n(-5, wt = estimate) %>% 
+        arrange(desc(estimate), .by_group = TRUE) %>%
+        ungroup() %>%
+        select(web_name, position, estimate, std.error, minutes) %>%
+        kable()
+
+
+```
+
+
+
+
+```{r, echo = FALSE, warning = FALSE, message = FALSE}
+
+fixtures_new <- fixtures %>% 
+        mutate(week = as.Date(deadline_time, format = '%Y-%m-%d'),
+               team_h = as.factor(team_h),
+               team_a = as.factor(team_a)) %>%
+        select(team_h, team_a, team_h_score, team_a_score, finished, week)
+
+played <- fixtures_new %>% 
+        filter(finished == TRUE) %>% 
+        select(-finished)
+
+unplayed <- fixtures_new %>% 
+        filter(finished == FALSE) %>% 
+        select(-finished)
+        
+model <- dixoncoles(team_h_score, team_a_score, team_h, team_a, 
+                    data = played)
+
+```
+
+
+```{r, echo = FALSE, warning = FALSE, message = FALSE}
+
+match_probabilities <- broom::augment(
+        model, unplayed, 
+        type.predict = "outcomes") %>% 
+        unnest() %>% 
+        spread(outcome, prob) %>% 
+        select(-team_h_score, -team_a_score)
+
+# match_probabilities
+
+```
+
+
+```{r, echo = FALSE, warning = FALSE, message = FALSE}
+
+team_parameters <- broom::tidy(model) %>% 
+        filter(parameter %in% c("off", "def")) %>% 
+        mutate(value = exp(value)) %>% 
+        spread(parameter, value)
+
+team_parameters %>% 
+        ggplot(aes(x = (-1 * def), y = off)) +  
+        geom_point(alpha = 0.5) + 
+        ggrepel::geom_text_repel(aes(label = team)) + 
+        theme_minimal() + 
+        labs(title = "Team Strength Estimates", 
+             y = "Attack", 
+             x = "Defence")
+
+
+```
+
+
+```{r, echo = FALSE, warning = FALSE, message = FALSE}
+
+unplayed_scorelines <- broom::augment(
+        model, unplayed, type.predict = "scorelines") %>% 
+        unnest() %>% 
+        select(-team_h_score, -team_a_score)
+
+# unplayed_scorelines
+
+
+```
+
+
+
+```{r, echo = FALSE, warning = FALSE, message = FALSE}
+
+unplayed_scorelines %>% 
+        filter(week == "2019-04-12") %>%
+        group_by(team_h, team_a) %>% 
+        filter(prob == max(prob)) %>%
+        arrange(desc(prob)) %>% 
+        ungroup() %>% 
+        kable()
+
+# match_probabilities
+
+```
+

@@ -1,0 +1,66 @@
+library(tidyverse)
+
+set.seed(1)
+Defect_A = sample(1:30, 10, replace=TRUE)  
+Defect_B = sample(1:30, 10, replace=TRUE)  
+Defect_C = sample(1:30, 10, replace=TRUE) 
+Defect_D = sample(1:30, 10, replace=TRUE)  
+Defect_E = sample(1:30, 10, replace=TRUE)  
+test <- data.frame(cbind(Defect_A, Defect_B, Defect_C, Defect_D, Defect_E))
+test
+
+# Conditions
+any <- c(1,2,3,4) # for condition 1  
+any_2 <- c(5,6,7,8) # for conditions 2 and 3  
+any_2_plus <- c(9,10,11,12,13) # for condition 3  
+any_3 <- c(14,15,16,17,18) # for condition 4  
+
+test_new <- test %>%
+        mutate(case = row_number()) %>%
+        gather(defect, val, -case) %>% 
+        mutate(case_one = val %in% any,
+               case_two = val %in% any_2,
+               case_any_2 = val %in% any_2_plus,
+               case_three = val %in% any_3) %>%
+        group_by(case) %>%
+        summarise(case_one = sum(case_one),
+                  case_two = sum(case_two),
+                  case_two_2 = sum(case_any_2),
+                  case_three = sum(case_three)) %>%
+        mutate(condition_one = case_when(
+                case_one >= 1 ~ 'conjoined'),
+               condition_two = case_when(
+                       case_two >= 2 ~ 'spina bifida'),
+               condition_two_two = case_when(
+                       case_two >= 1 & case_two_2 >= 1  ~ 'heterodaxy'),
+               condition_three = case_when(
+                       case_three >= 3 ~ 'vacterl'))
+
+
+test_new %>% 
+        select(-case_one, -case_two, -case_two_2,
+               -case_three) %>%
+        gather(condition, val, -case)
+
+
+# Sample data set
+df = data.frame(Defect_A = sample(1:30, 10, replace=TRUE),
+                Defect_B = sample(1:30, 10, replace=TRUE),
+                Defect_C = sample(1:30, 10, replace=TRUE), 
+                Defect_D = sample(1:30, 10, replace=TRUE),
+                Defect_E = sample(1:30, 10, replace=TRUE))
+
+# Conditions
+any <- c(1,2,3,4) # for condition 1  
+any_2 <- c(5,6,7,8) # for conditions 2 and 3  
+any_2_plus <- c(9,10,11,12,13) # for condition 3  
+any_3 <- c(14,15,16,17,18) # for condition 4 
+
+
+test$comments = apply(df,1, function(x) {
+        ifelse(length(x[x %in% any == TRUE]) >= 1, 'conjoined', ifelse (
+                length(x[x %in% any_2 == TRUE]) >= 2, 'spina bifida', ifelse (
+                        length(x[x %in% any_2 == TRUE]) >= 1 && length(x[x %in% any_2_plus == TRUE]) >= 1, 'heterodaxy', ifelse (
+                                length(x[x %in% any_3 == TRUE]) >= 3, 'vacterl', 'NA'))))
+})
+

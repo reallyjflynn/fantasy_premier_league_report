@@ -2,7 +2,7 @@
 title: "FPL R"
 author: "JFynn"
 date: "28/7/2018"
-output: html_document
+output: rmarkdown::github_document
 editor_options: 
   chunk_output_type: console
 ---
@@ -53,6 +53,18 @@ players <- players %>%
 ```
 
 
+### Intro
+
+
+We're going to use the fplR library to pull FPL data, explore some of the data to find players who offer good value for points, and then evaluate some teams and make a prediction on next weeks games.
+
+
+
+### Top Players
+
+
+Viewing the top players based on minutes playes and points accumulated.
+
 ```{r, echo=FALSE, warning = FALSE, message = FALSE}
 
 gg <- players %>% 
@@ -83,6 +95,8 @@ gg + geom_label_repel(data = the_best,
 
 
 ### Goalkeeper
+
+Which goal keeps are performing above an expected level for their price?
 
 ```{r, echo = FALSE, warning = FALSE, message = FALSE}
 
@@ -214,6 +228,20 @@ gg + geom_label_repel(data = attack_small,
 ```
 
 
+### Performance Model
+
+
+I want to look at expected team performance to select a player. 
+Modeling players would be more applicable to what we want, but player performance is highly volatile, team performance is much more consistent. 
+
+Its also fair to say that if a player is on a team doing well, and is playing, they are likely to reap the rewards of that team. 
+
+I'm using a dixon coles model to do this. I've tried with more common regression techniques, but this has proven more robust over time. 
+
+
+"Modelling association football scores and inefficiencies in the football betting market." Journal of the Royal Statistical Society: Series C (Applied Statistics) 46, no. 2 (1997): 265-280.
+
+
 ```{r, echo = FALSE, warning = FALSE, message = FALSE}
 
 fixtures_new <- fixtures %>% 
@@ -256,6 +284,9 @@ match_probabilities <- match_probabilities %>%
 
 
 ```
+
+
+Using the dixon coles model we can evaluate the respect offensive strenghts and defensive weaknesses of a team.
 
 
 ```{r, echo = FALSE, warning = FALSE, message = FALSE}
@@ -301,7 +332,7 @@ unplayed_scorelines <- broom::augment(
 
 ```
 
-
+Next weeks score lines:
 
 ```{r, echo = FALSE, warning = FALSE, message = FALSE}
 
@@ -309,7 +340,7 @@ upcoming <- unplayed_scorelines %>%
   select(week) %>% 
   distinct() %>% 
   mutate(dist = week - Sys.Date()) %>% 
-  filter(dist < 7) %>% 
+  filter(dist < 15) %>% 
   pull(week)
 
 
@@ -319,12 +350,20 @@ unplayed_scorelines %>%
         filter(prob == max(prob)) %>%
         arrange(desc(prob)) %>% 
         ungroup() %>% 
+        select(
+          'Date' = week, 
+          'Home Team' = home_name, 
+          'Away Team' = away_name, 
+          'Home Goals' = hgoal, 
+          'Away Goals' = agoal, 
+          'Probability' = prob) %>%
         kable()
 
-# match_probabilities
+```
 
 
 
+```{r}
 
 ```
 

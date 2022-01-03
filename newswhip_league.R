@@ -1,6 +1,5 @@
 library(tidyverse)
 library(fplr)
-library(newswhipstyle)
 library(ggrepel)
 
 
